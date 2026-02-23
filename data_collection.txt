@@ -1,0 +1,155 @@
+#collection of data from an api for various cryptocurrencies and making it to a readable form
+
+!pip install requests
+
+
+
+all_records=[]
+import requests
+for i in range(1,6):
+    url=f"https://api.coingecko.com/api/v3/coins/markets?vs_currency=inr&per_page=250&order=market_cap_desc&page={i}&sparkline=False"
+    response=requests.get(url)
+    if response.status_code == 200:
+        data=response.json()
+        all_records.extend(data)
+all_records
+
+#collecting required datas from the available data
+
+from datetime import datetime,date
+records =[]
+for i in all_records:
+  records.append(dict(
+      id = i['id'],
+      symbol = i['symbol'],
+      name=i['name'],
+      current_price=i['current_price'],
+      market_cap=i['market_cap'],
+      market_cap_rank=i['market_cap_rank'],
+      total_volume=i['total_volume'],
+      circulating_supply=i['circulating_supply'],
+      total_supply=i['total_supply'],
+      ath=i['ath'],
+      atl=i['atl'],
+      date=datetime.strptime(i['last_updated'], '%Y-%m-%dT%H:%M:%S.%fZ').date().isoformat(),
+      time=datetime.strptime(i['last_updated'], '%Y-%m-%dT%H:%M:%S.%fZ').time().isoformat()))
+records
+
+#converting it into a pandas data frame and saving it as a csv file
+
+import pandas as pd
+cryptotypes_df = pd.DataFrame(records)
+cryptotypes_df['date'] = pd.to_datetime(cryptotypes_df['date'])
+cryptotypes_df
+
+
+cryptotypes_df.to_csv("cryptotypes.csv",index = False)
+
+#collection of price data for top 3 cryptocurrencies for 1 year
+
+top_coin_all_records=[]
+import requests
+coin_id=['bitcoin', 'ethereum', 'tether']
+for i in coin_id :
+    url = f"https://api.coingecko.com/api/v3/coins/{i}/market_chart?vs_currency=inr&days=365"
+    response = requests.get(url)
+    if response.status_code == 200:
+        top_coin_data=dict(response.json())
+    top_coin_all_records.append(top_coin_data)
+    top_coin_all_records
+
+#since the data doesn't contain cryptocurrency name, adding it using for loop
+
+
+top_coin_all_records
+coin_ids=['bitcoin','ethereum','tether']
+
+for name, data_dict in zip(coin_ids,top_coin_all_records):
+    data_dict["name"] = name
+
+#modifying the data to obtain clarity for further handling
+
+from datetime import datetime
+top_coin_records=[]
+for i in top_coin_all_records:
+  for j in i['prices']:
+    top_coin_records.append(dict(
+      coin_id=i['name'],
+      date=datetime.fromtimestamp(j[0] / 1000.0).strftime('%Y-%m-%d'),
+      price=f"{j[1]:.2f}"))
+
+
+top_coin_records
+
+#coverting it into a pandas dataframe and saving it as a csv file
+
+import pandas as pd
+top_coins_df = pd.DataFrame(top_coin_records)
+top_coins_df
+
+top_coins_df.to_csv("top_coins.csv",index = False)
+
+#obtaining oil data and saving it as pandas
+
+import pandas as pd
+oil_df = pd.read_csv("https://raw.githubusercontent.com/datasets/oil-prices/main/data/wti-daily.csv")
+oil_df
+
+#data for specific time period
+
+oil_df['Date'] = pd.to_datetime(oil_df['Date'])
+oil_20_26_df=oil_df.loc[(oil_df['Date'] >= '2020-01-01') & (oil_df['Date']<='2026-01-31')]
+oil_20_26_df
+oil_20_26_df.to_csv
+
+#obtaing stock prices data and saving it as pandas data frame
+
+import yfinance as yf
+import pandas as pd
+
+# Choose indices
+tickers = ["^GSPC", "^IXIC", "^NSEI"]
+start_date = "2020-01-01"
+end_date = "2026-01-31"
+
+# Download historical data
+stocks_df = yf.download(tickers, start=start_date, end=end_date, group_by="ticker")
+stocks_df.head()
+
+#seperating the table for each ticker and adding the ticker name
+stocks_NSEI_df=stocks_df['^NSEI'].reset_index()
+new_names = ['date', 'open', 'high','low','close','volume']
+stocks_NSEI_df.columns = new_names
+stocks_NSEI_df.insert(6, 'ticker', 'NSEI')
+stocks_NSEI_df
+
+stocks_GSPC_df=stocks_df['^GSPC'].reset_index()
+new_names = ['date', 'open', 'high','low','close','volume']
+stocks_GSPC_df.columns = new_names
+stocks_GSPC_df.insert(6, 'ticker', 'GSPC')
+stocks_GSPC_df
+
+stocks_IXIC_df=stocks_df['^IXIC'].reset_index()
+new_names = ['date', 'open', 'high','low','close','volume']
+stocks_IXIC_df.columns = new_names
+stocks_IXIC_df.insert(6, 'ticker', 'IXIC')
+stocks_IXIC_df
+
+#joining 3 tables coloumnwise
+stock_prices_df = pd.concat([stocks_NSEI_df,stocks_GSPC_df,stocks_IXIC_df])
+stock_prices_df
+
+#removing null values and saving as dataframe
+stock_prices_df[stock_prices_df.isnull().any(axis=1)]
+
+stock_prices_df.to_csv("stock_prices.csv",index = False)
+
+
+
+
+
+
+
+
+
+
